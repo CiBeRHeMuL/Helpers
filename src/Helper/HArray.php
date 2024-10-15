@@ -21,6 +21,9 @@ class HArray
         if ($array instanceof Traversable) {
             $array = iterator_to_array($array);
         }
+        if (empty($array)) {
+            return [];
+        }
 
         $key = is_callable($key)
             ? $key
@@ -46,31 +49,7 @@ class HArray
      */
     public static function group(iterable $array, string|int|callable|array $key, bool $preserveKeys = true): array
     {
-        if ($array instanceof Traversable) {
-            $array = iterator_to_array($array);
-        }
-
-        $keyToCallable = fn($k) => is_callable($k)
-            ? $k
-            : fn($el) => $el[$k] ?? null;
-
-        $key = (array)$key;
-
-        $result = [];
-        foreach ($array as $i => $el) {
-            $currentResultEl = &$result;
-            foreach ($key as $k) {
-                $k = $keyToCallable($k)($el);
-                $currentResultEl[$k] ??= [];
-                $currentResultEl = &$currentResultEl[$k];
-            }
-            if ($preserveKeys) {
-                $currentResultEl[$i] = $el;
-            } else {
-                $currentResultEl[] = $el;
-            }
-        }
-        return $result;
+        return self::groupExtended($array, $key, preserveKeys: $preserveKeys);
     }
 
     /**
@@ -85,31 +64,7 @@ class HArray
      */
     public static function groupIndexing(iterable $array, string|int|callable|array $key, string|int|callable $index): array
     {
-        if ($array instanceof Traversable) {
-            $array = iterator_to_array($array);
-        }
-
-        $keyToCallable = fn($k) => is_callable($k)
-            ? $k
-            : fn($el) => $el[$k] ?? null;
-        $key = (array)$key;
-
-
-        $index = is_callable($index)
-            ? $index
-            : fn($el) => $el[$index] ?? null;
-
-        $result = [];
-        foreach ($array as $i => $el) {
-            $currentResultEl = &$result;
-            foreach ($key as $k) {
-                $k = $keyToCallable($k)($el);
-                $currentResultEl[$k] ??= [];
-                $currentResultEl = &$currentResultEl[$k];
-            }
-            $currentResultEl[$index($el)] = $el;
-        }
-        return $result;
+        return self::groupExtended($array, $key, $index);
     }
 
     /**
@@ -216,6 +171,10 @@ class HArray
         // Если $array это итератор, то преобразовываем его в массив
         if ($array instanceof Traversable) {
             $array = iterator_to_array($array);
+        }
+        // Если пустой, сразу возвращаем
+        if (empty($array)) {
+            return [];
         }
 
         $keyToCallable = fn($k) => is_callable($k)
