@@ -46,11 +46,11 @@ class HString
      * Convert size in bytes to human-readable string representation
      *
      * @param float $bytes
-     * @param string $locale locale to format bytes number. Using only if `intl` extension installed
+     * @param string $locale locale to format bytes number. Using only if the `intl` extension is installed
      *
      * @return string
      */
-    public static function asSize(float $bytes, string $locale = 'en_EN'): string
+    public static function asBytes(float $bytes, string $locale = 'en_EN', bool $useIntl = true): string
     {
         $steps = [
             'petabyte' => 1 << 50,
@@ -72,7 +72,7 @@ class HString
             }
         }
 
-        if (extension_loaded('intl')) {
+        if (extension_loaded('intl') && $useIntl) {
             return msgfmt_format_message(
                 $locale,
                 "{0, number, :: .00 measure-unit/digital-$resultStep unit-width-narrow}",
@@ -106,8 +106,12 @@ class HString
      *
      * @return string The truncated string
      */
-    public static function truncate(string $inputString, int $maxLength, string $ellipsis = '...', string $encoding = 'UTF-8'): string
-    {
+    public static function truncate(
+        string $inputString,
+        int $maxLength,
+        string $ellipsis = '...',
+        string $encoding = 'UTF-8',
+    ): string {
         if (mb_strlen($inputString, $encoding) <= $maxLength) {
             return $inputString;
         }
@@ -197,41 +201,47 @@ class HString
     }
 
     /**
+     * Changes keyboard layout from English to Russian using Mac layouts
+     *
      * @param string $str
      *
      * @return string
      */
     public static function changeEngKeyboardLayoutToRus(string $str): string
     {
-        $eng = '`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?';
-        $rus = ']1234567890-=йцукенгшщзхъёфывапролджэячсмитьбю/[!"№%:,.;()_+ЙЦУКЕНГШЩЗХЪЁФЫВАПРОЛДЖЭЯЧСМИТЬБЮ?';
+        // These arrays contain only pairs of symbols that are different in different layouts
+        $eng = ['`', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '~', '@', '#', '$', '%', '^', '&', '*', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>'];
+        $rus = [']', 'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ', 'ё', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '[', '"', '№', '%', ':', ',', '.', ';', 'Й', 'Ц', 'У', 'К', 'Е', 'Н', 'Г', 'Ш', 'Щ', 'З', 'Х', 'Ъ', 'Ё', 'Ф', 'Ы', 'В', 'А', 'П', 'Р', 'О', 'Л', 'Д', 'Ж', 'Э', 'Я', 'Ч', 'С', 'М', 'И', 'Т', 'Ь', 'Б', 'Ю'];
 
-        return str_replace(mb_str_split($eng), mb_str_split($rus), $str);
+        return strtr($str, array_combine($eng, $rus));
     }
 
     /**
+     * Changes keyboard layout from Russian to English using Mac layouts
+     *
      * @param string $str
      *
      * @return string
      */
     public static function changeRusKeyboardLayoutToEng(string $str): string
     {
-        $eng = '`1234567890-=qwertyuiop[]\\asdfghjkl;\'zxcvbnm,./~!@#$%^&*()_+QWERTYUIOP{}|ASDFGHJKL:"ZXCVBNM<>?';
-        $rus = ']1234567890-=йцукенгшщзхъёфывапролджэячсмитьбю/[!"№%:,.;()_+ЙЦУКЕНГШЩЗХЪЁФЫВАПРОЛДЖЭЯЧСМИТЬБЮ?';
+        // These arrays contain only pairs of symbols that are different in different layouts
+        $eng = ['`', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '~', '@', '#', '$', '%', '^', '&', '*', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>'];
+        $rus = [']', 'й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з', 'х', 'ъ', 'ё', 'ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж', 'э', 'я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '[', '"', '№', '%', ':', ',', '.', ';', 'Й', 'Ц', 'У', 'К', 'Е', 'Н', 'Г', 'Ш', 'Щ', 'З', 'Х', 'Ъ', 'Ё', 'Ф', 'Ы', 'В', 'А', 'П', 'Р', 'О', 'Л', 'Д', 'Ж', 'Э', 'Я', 'Ч', 'С', 'М', 'И', 'Т', 'Ь', 'Б', 'Ю'];
 
-        return str_replace(mb_str_split($rus), mb_str_split($eng), $str);
+        return strtr($str, array_combine($rus, $eng));
     }
 
     public static function stringifyValue(mixed $value): string
     {
-        return match (get_debug_type($value)) {
-            'null' => self::stringifyNull($value),
-            'bool' => self::stringifyBool($value),
-            'int' => self::stringifyInt($value),
-            'float' => self::stringifyFloat($value),
-            'string' => self::stringifyString($value),
-            'array' => self::stringifyArray($value),
-            'object' => self::stringifyObject($value),
+        return match (true) {
+            is_null($value) => self::stringifyNull($value),
+            is_bool($value) => self::stringifyBool($value),
+            is_int($value) => self::stringifyInt($value),
+            is_float($value) => self::stringifyFloat($value),
+            is_string($value) => self::stringifyString($value),
+            is_array($value) => self::stringifyArray($value),
+            is_object($value) => self::stringifyObject($value),
             default => (string) $value,
         };
     }

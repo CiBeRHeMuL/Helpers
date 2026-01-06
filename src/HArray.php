@@ -2,97 +2,87 @@
 
 namespace AndrewGos\Helpers;
 
-use Traversable;
+use AndrewGos\Helpers\Enum\FilterModeEnum;
+use Closure;
 
 class HArray
 {
     /**
-     * Index array by key or callable
+     * @see self::indexExtended()
+     *
      * @template T
-     * @template Key of string|int
+     * @template TKey of int|string
+     * @template TResKey of int|string
+     * @template TKeyFunc of Closure(T, TKey=): TResKey
      *
      * @param iterable<T> $array
-     * @param Key|(callable(T): Key) $key if callable, then must have signature: callable(array-element-type): string|int
+     * @param TKey|TKeyFunc $key
      *
-     * @return array<Key, T>
+     * @return array<TResKey, T>
      */
-    public static function index(iterable $array, string|int|callable $key): array
+    public static function index(iterable $array, string|int|Closure $key): array
     {
-        $key = is_callable($key) ? $key : fn($el) => $el[$key] ?? null;
-
-        $result = [];
-        foreach ($array as $i => $el) {
-            $result[$key($el)] = $el;
-        }
-        return $result;
+        return self::indexExtended(
+            array: $array,
+            key: $key,
+        );
     }
 
     /**
-     * Group array elements by key or keys if key is array
-     * @template T
-     * @template Key of string|int
+     * @see self::groupExtended()
      *
-     * @param iterable<T>|array<Key, T>|T[] $array
-     * @param Key|callable|(Key|callable)[] $key
+     * @template T
+     * @template TKey of int|string
+     * @template TResKey of int|string
+     * @template TKeyFunc of Closure(T, TKey=): TResKey
+     *
+     * @param iterable<T>|array<TKey, T>|T[] $array
+     * @param TKey|TKeyFunc|(TKey|TKeyFunc)[] $key
      * @param bool $preserveKeys
      *
-     * @return ($key is array ? array : array<Key, T[]>)
+     * @return array
      */
-    public static function group(iterable $array, string|int|callable|array $key, bool $preserveKeys = true): array
-    {
-        $keyToCallable = fn($k) => is_callable($k) ? $k : fn($el) => $el[$k] ?? null;
-
-        $key = is_array($key) && is_callable($key) ? [$key] : (array) $key;
-
-        $result = [];
-        foreach ($array as $i => $el) {
-            $currentResultEl = &$result;
-            foreach ($key as $k) {
-                $k = $keyToCallable($k)($el);
-                $currentResultEl[$k] ??= [];
-                $currentResultEl = &$currentResultEl[$k];
-            }
-            if ($preserveKeys) {
-                $currentResultEl[$i] = $el;
-            } else {
-                $currentResultEl[] = $el;
-            }
-        }
-        return $result;
+    public static function group(
+        iterable $array,
+        string|int|Closure|array $key,
+        bool $preserveKeys = false,
+    ): array {
+        return self::groupExtended(
+            array: $array,
+            key: $key,
+            preserveKeys: $preserveKeys,
+        );
     }
 
     /**
-     * Group array elements by key or keys if key is array
+     * @see self::groupExtended()
+     *
      * @template T
-     * @template Key of string|int
+     * @template TKey of int|string
+     * @template TResKey of int|string
+     * @template TProj
+     * @template TKeyFunc of Closure(T, TKey=): TResKey
+     * @template TProjFunc of Closure(T, TKey=): TProj
      *
-     * @param iterable<T>|array<Key, T>|T[] $array
-     * @param Key|callable|(Key|callable)[] $key
-     * @param Key|callable $index if callable, then must have signature: callable(element-type): key-type
+     * @param iterable<T>|array<TKey, T>|T[] $array
+     * @param TKey|TKeyFunc|(TKey|TKeyFunc)[] $key
+     * @param TKey|TKeyFunc $index
+     * @param TResKey|TKeyFunc|null $defaultIndex
      *
-     * @return ($key is array ? array : array<Key, T[]>|array)
+     * @return array
      */
-    public static function groupIndexing(iterable $array, string|int|callable|array $key, string|int|callable $index): array
-    {
-        $keyToCallable = fn($k) => is_callable($k) ? $k : fn($el) => $el[$k] ?? null;
-
-        $key = is_array($key) && is_callable($key) ? [$key] : (array) $key;
-
-        $index = is_callable($index)
-            ? $index
-            : fn($el) => $el[$index] ?? null;
-
-        $result = [];
-        foreach ($array as $i => $el) {
-            $currentResultEl = &$result;
-            foreach ($key as $k) {
-                $k = $keyToCallable($k)($el);
-                $currentResultEl[$k] ??= [];
-                $currentResultEl = &$currentResultEl[$k];
-            }
-            $currentResultEl[$index($el)] = $el;
-        }
-        return $result;
+    public static function groupIndexing(
+        iterable $array,
+        string|int|Closure|array $key,
+        string|int|Closure $index,
+        string|int|Closure|null $defaultIndex = null,
+    ): array {
+        return self::groupExtended(
+            array: $array,
+            key: $key,
+            index: $index,
+            defaultIndex: $defaultIndex,
+        );
     }
 
     /**
@@ -100,116 +90,218 @@ class HArray
      * if necessary, indexes the elements by index \$index and,
      * if necessary, it projects elements using the \$projection function.
      *
-     * If it is necessary to reindex the keys of the elements, then \$preserveKeys must be set to false.
-     * If \$preserveKeys is false, then \$index is forcibly set to null to avoid unnecessary calculations.
+     * If it is necessary to reindex the keys of the elements, then \$preserveKeys MUST be set to false.
+     * If \$preserveKeys is true, then \$index is forcibly set to null to avoid unnecessary calculations.
      *
      * If some elements may not contain the \$index key value, then you can pass the default value \$defaultIndex
      *
      * Usage Examples:
-     * 1. Grouping by key:
+     * 1. Group:
      * <code>
      * $array = ['one' => 1, 'two' => 2, 'three' => 3];
      * $array = HArray::groupExtended(
-     *      $array,
-     *      fn($el) => $el % 2 === 0 ? 'even' : 'odd',
-     * );
-     * // $array = ['odd' => ['one' => 1, 'three' => 3], 'even' => ['two' => 2]]
-     * </code>
-     * 2. Grouping by key and indexing of items:
-     * <code>
-     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
-     * $array = HArray::groupExtended(
-     *      $array,
-     *      fn($el) => $el % 2 === 0 ? 'even' : 'odd',
-     *      fn($el) => "value_$el",
-     * );
-     * // $array = ['odd' => ['value_1' => 1, 'value_3' => 3], 'even' => ['value_2' => 2]]
-     * </code>
-     * 3. Grouping by key and indexing elements with projection:
-     * <code>
-     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
-     * $array = HArray::groupExtended(
-     *      $array,
-     *      fn($el) => $el % 2 === 0 ? 'even' : 'odd',
-     *      fn($el) => "value_$el",
-     *      fn($el) => $el * 2,
-     * );
-     * // $array = ['odd' => ['value_1' => 2, 'value_3' => 6], 'even' => ['value_2' => 4]]
-     * </code>
-     * 4. Grouping by key with resetting the keys of nested arrays:
-     * <code>
-     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
-     * $array = HArray::groupExtended($array, fn($el) => $el % 2 === 0 ? 'even' : 'odd', preserveKeys: false);
-     * // $array = ['odd' = [1, 3], 'even' => [2]]
-     * </code>
-     * 5. Grouping by passing the key to the grouping function:
-     * <code>
-     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
-     * $array = HArray::groupExtended(
-     *      $array,
-     *      fn($el, $k) => $k,
-     * );
-     * // $array = ['one' => ['one' => 1], 'two' => ['two' => 2], 'three' => ['three' => 3]]
-     * </code>
-     * 6. Grouping by the key of a nested array:
-     * <code>
-     * $array = ['one' => ['id' => 1, 'value' => 1], 'two' => ['id' => 2, 'value' => 2], 'three' => ['id' => 3, 'value' => 3]];
-     * $array = HArray::groupExtended(
-     *      $array,
-     *      'value',
+     *     $array,
+     *     fn($el) => $el % 2 === 0 ? 'even' : 'odd',
      * );
      * // $array = [
-     * //     '1' => ['one' => ['id' => 1, 'value' => 1]],
-     * //     '2' => ['two' => ['id' => 2, 'value' => 2]],
-     * //     '3' => ['three' => ['id' => 3, 'value' => 3]],
+     * //     'odd' => [
+     * //         1,
+     * //         3,
+     * //     ],
+     * //     'even' => [
+     * //         2,
+     * //     ],
      * // ];
      * </code>
-     * 7. Grouping by the key of a nested array using the default index:
+     *
+     * 2. Group and index items:
      * <code>
-     * $array = ['one' => ['id' => 1, 'value' => 4], 'two' => ['id' => 2, 'value' => 5], 'three' => ['id' => 3]];
+     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
      * $array = HArray::groupExtended(
-     *      $array,
-     *      'value',
-     *      'id',
+     *     $array,
+     *     fn($el) => $el % 2 === 0 ? 'even' : 'odd',
+     *     fn($el) => "value_$el",
      * );
-     * // $array = ['4' => ['one' => ['id' => 1, 'value' => 4]], '5' => ['two' => ['id' => 2, 'value' => 5]], '3' => ['three' => ['id' => 3]]]
+     * // $array = [
+     * //     'odd' => [
+     * //         'value_1' => 1,
+     * //         'value_3' => 3,
+     * //     ],
+     * //     'even' => [
+     * //         'value_2' => 2,
+     * //     ],
+     * // ];
+     * </code>
+     *
+     * 3. Group and index elements with projection:
+     * <code>
+     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     fn($el) => $el % 2 === 0 ? 'even' : 'odd',
+     *     fn($el) => "value_$el",
+     *     fn($el) => $el * 2,
+     * );
+     * // $array = [
+     * //     'odd' => [
+     * //         'value_1' => 2,
+     * //         'value_3' => 6,
+     * //     ],
+     * //     'even' => [
+     * //         'value_2' => 4,
+     * //     ],
+     * // ];
+     * </code>
+     *
+     * 4. Group and preserve keys:
+     * <code>
+     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     fn($el) => $el % 2 === 0 ? 'even' : 'odd',
+     *     preserveKeys: true,
+     * );
+     * // $array = [
+     * //     'odd' => [
+     * //         'one' => 1,
+     * //         'three' => 3,
+     * //     ],
+     * //     'even' => [
+     * //         'two' => 2,
+     * //     ],
+     * // ];
+     * </code>
+     *
+     * 5. Group by passing the key to the grouping function:
+     * <code>
+     * $array = ['one' => 1, 'two' => 2, 'three' => 3];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     fn($el, $k) => $k,
+     * );
+     * // $array = [
+     * //     'one' => [
+     * //         'one' => 1,
+     * //     ],
+     * //     'two' => [
+     * //         'two' => 2,
+     * //     ],
+     * //     'three' => [
+     * //         'three' => 3,
+     * //     ],
+     * // ];
+     * </code>
+     *
+     * 6. Group using the key of a nested array:
+     * <code>
+     * $array = [
+     *     'one' => ['id' => 1, 'value' => 1],
+     *     'two' => ['id' => 2, 'value' => 2],
+     *     'three' => ['id' => 3, 'value' => 3],
+     * ];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     'value',
+     * );
+     * // $array = [
+     * //     '1' => [['id' => 1, 'value' => 1]],
+     * //     '2' => [['id' => 2, 'value' => 2]],
+     * //     '3' => [['id' => 3, 'value' => 3]],
+     * // ];
+     * </code>
+     *
+     * 7. Group by the key of a nested array using the default index:
+     * <code>
+     * $array = [
+     *     'one' => ['id' => 1, 'value' => 4],
+     *     'two' => ['id' => 2, 'value' => 5],
+     *     'three' => ['id' => 3],
+     * ];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     'id',
+     *     index: 'value',
+     *     defaultIndex: 3,
+     * );
+     * // $array = [
+     * //     '1' => [
+     * //         '4' => ['id' => 1, 'value' => 4],
+     * //     ],
+     * //     '2' => [
+     * //         '5' => ['id' => 2, 'value' => 5],
+     * //     ],
+     * //     '3' => [
+     * //         '3' => ['id' => 3],
+     * //     ],
+     * // ];
+     *
+     * 8. Group by the key of a nested array using the default index as function:
+     * <code>
+     * $array = [
+     *     'one' => ['id' => 1, 'value' => 4],
+     *     'two' => ['id' => 2, 'value' => 5],
+     *     'three' => ['id' => 3],
+     * ];
+     * $array = HArray::groupExtended(
+     *     $array,
+     *     'id',
+     *     index: 'value',
+     *     defaultIndex: fn($el, $key) => $el['id'] * 2,
+     * );
+     * // $array = [
+     * //     '1' => [
+     * //         '4' => ['id' => 1, 'value' => 4],
+     * //     ],
+     * //     '2' => [
+     * //         '5' => ['id' => 2, 'value' => 5],
+     * //     ],
+     * //     '3' => [
+     * //         '6' => ['id' => 3],
+     * //     ],
+     * // ];
      * </code>
      *
      * @template T
      * @template TKey of int|string
      * @template TResKey of int|string
      * @template TProj
-     * @template TKeyFunc of callable(T, TKey=): TResKey
+     * @template TKeyFunc of Closure(T, TKey=): TResKey
+     * @template TProjFunc of Closure(T, TKey=): TProj
      *
      * @param iterable<T>|array<TKey, T>|T[] $array
      * @param TKey|TKeyFunc|(TKey|TKeyFunc)[] $key
-     * @param TKey|(callable(T, TKey=): (int|string))|null $index
-     * @param (callable(T, TKey=): TProj)|null $projection
+     * @param TKey|TKeyFunc|null $index
+     * @param TProjFunc|null $projection
      * @param bool $preserveKeys
-     * @param int|string|null $defaultIndex
+     * @param TResKey|TKeyFunc|null $defaultIndex
      *
      * @return array
      */
     public static function groupExtended(
         iterable $array,
-        int|string|callable|array $key,
-        int|string|callable|null $index = null,
-        ?callable $projection = null,
-        bool $preserveKeys = true,
-        int|string|null $defaultIndex = null,
+        int|string|Closure|array $key,
+        int|string|Closure|null $index = null,
+        ?Closure $projection = null,
+        bool $preserveKeys = false,
+        int|string|Closure|null $defaultIndex = null,
     ): array {
-        $keyToCallable = fn($k) => is_callable($k) ? $k : fn($el) => $el[$k] ?? null;
+        $keyToCallable = fn($k) => $k instanceof Closure ? $k : fn($el) => $el[$k] ?? null;
 
-        $key = is_array($key) && is_callable($key) ? [$key] : (array) $key;
+        $key = (array) $key;
 
         if ($preserveKeys) {
-            if ($index !== null) {
-                $index = is_callable($index)
-                    ? $index
-                    : fn($el) => $el[$index] ?? $defaultIndex;
-            }
-        } else {
             $index = null;
+            $defaultIndex = null;
+        }
+
+        if ($index !== null) {
+            $defaultIndex = $defaultIndex instanceof Closure
+                ? $defaultIndex
+                : fn($el) => $defaultIndex;
+
+            $index = $index instanceof Closure
+                ? $index
+                : fn($el, $k) => array_key_exists($index, $el) ? $el[$index] : $defaultIndex($el, $k);
         }
 
         $projection ??= fn($el) => $el;
@@ -218,77 +310,105 @@ class HArray
         foreach ($array as $i => $el) {
             $currentResultEl = &$result;
             foreach ($key as $k) {
-                $k = $keyToCallable($k)($el);
+                $k = $keyToCallable($k)($el, $i);
                 $currentResultEl[$k] ??= [];
                 $currentResultEl = &$currentResultEl[$k];
             }
             if ($preserveKeys) {
-                if ($index === null) {
-                    $currentResultEl[$i] = $projection($el);
-                } else {
-                    $currentResultEl[$index($el)] = $projection($el);
-                }
+                $currentResultEl[$i] = $projection($el, $i);
+            } elseif ($index !== null) {
+                $currentResultEl[$index($el, $i)] = $projection($el, $i);
             } else {
-                $currentResultEl[] = $projection($el);
+                $currentResultEl[] = $projection($el, $i);
             }
         }
         return $result;
     }
 
     /**
-     * Indexing with projection
-     *
      * @template T
-     * @template Key of string|int
-     * @template Proj
+     * @template TKey of int|string
+     * @template TResKey of int|string
+     * @template TProj
+     * @template TKeyFunc of Closure(T, TKey=): TResKey
+     * @template TProjFunc of Closure(T, TKey=): TProj
      *
      * @param iterable<T> $array
-     * @param Key|callable(T): Key $key
-     * @param callable(T): Proj $projection
+     * @param TKey|TKeyFunc $key
+     * @param TProjFunc|null $projection
+     * @param TResKey|TKeyFunc|null $defaultIndex
      *
-     * @return array<Key, Proj>
+     * @return ($projection is null ? array<TResKey, T> : array<TResKey, TProj>)
      */
     public static function indexExtended(
         iterable $array,
-        string|int|callable $key,
-        callable $projection,
+        string|int|Closure $key,
+        ?Closure $projection = null,
+        int|string|Closure|null $defaultIndex = null,
     ): array {
-        if ($array instanceof Traversable) {
-            $array = iterator_to_array($array);
-        }
+        $defaultIndex = $defaultIndex instanceof Closure
+            ? $defaultIndex
+            : fn($el) => $defaultIndex;
 
-        $key = is_callable($key)
+        $key = $key instanceof Closure
             ? $key
-            : fn($el) => $el[$key] ?? null;
+            : fn($el, $k) => array_key_exists($key, $el) ? $el[$key] : $defaultIndex($el, $k);
+
+        $projection ??= fn($el) => $el;
 
         $result = [];
         foreach ($array as $i => $el) {
-            $result[$key($el)] = $projection($el);
+            $result[$key($el, $i)] = $projection($el, $i);
         }
         return $result;
     }
 
     /**
      * @param array $array
-     * @param callable|null $callable
-     * @param int $mode
+     * @param Closure|null $callable
+     * @param FilterModeEnum $mode
+     * @param bool $preserveKeys
      *
      * @return array
      */
-    public static function filterRecursive(array $array, ?callable $callable = null, int $mode = 0): array
-    {
-        $filterFunc = function (array $value) use (&$filterFunc, &$callable, &$mode) {
-            $value = array_filter($value, $callable, $mode);
-            array_walk(
-                $value,
-                function (&$val) use (&$filterFunc, &$callable, &$mode) {
-                    if (is_array($val)) {
-                        $val = $filterFunc($val);
+    public static function filterRecursive(
+        array $array,
+        ?Closure $callable = null,
+        FilterModeEnum $mode = FilterModeEnum::UseValue,
+        bool $preserveKeys = false,
+    ): array {
+        if ($callable === null) {
+            $callable = fn($e) => $e !== null;
+            $mode = FilterModeEnum::UseValue;
+        }
+
+        $result = [];
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $filteredValue = self::filterRecursive($value, $callable, $mode, $preserveKeys);
+                if (!empty($filteredValue)) {
+                    if ($preserveKeys) {
+                        $result[$key] = $filteredValue;
+                    } else {
+                        $result[] = $filteredValue;
                     }
-                },
-            );
-            return $value;
-        };
-        return $filterFunc($array);
+                }
+            } else {
+                $accepted = match ($mode) {
+                    FilterModeEnum::UseValue => $callable($value),
+                    FilterModeEnum::UseKey => $callable($key),
+                    FilterModeEnum::UseKeyValue => $callable($key, $value),
+                };
+
+                if ($accepted) {
+                    if ($preserveKeys) {
+                        $result[$key] = $value;
+                    } else {
+                        $result[] = $value;
+                    }
+                }
+            }
+        }
+        return $result;
     }
 }
