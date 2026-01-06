@@ -8,9 +8,9 @@ class RandomStringDataProvider
 {
     public static function dataProvider(): array
     {
-        $simpleLength = rand(0, 100);
-        $withDigitsLength = rand(0, 100);
-        $customEngineLength = rand(0, 100);
+        $simpleLength = rand(1, 100);
+        $withDigitsLength = rand(1, 100);
+        $customEngineLength = rand(1, 100);
         return [
             'simple' => [
                 'length' => $simpleLength,

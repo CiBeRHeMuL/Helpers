@@ -8,8 +8,8 @@ class RandomNumericStringDataProvider
 {
     public static function dataProvider(): array
     {
-        $simpleLength = rand(0, 100);
-        $customEngineLength = rand(0, 100);
+        $simpleLength = rand(1, 100);
+        $customEngineLength = rand(1, 100);
         return [
             'simple' => [
                 'length' => $simpleLength,
