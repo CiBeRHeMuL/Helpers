@@ -1,18 +1,12 @@
 # Andrew-Gos/Helpers
 
-[//]: # ([![Github actions Build]&#40;https://github.com/CiBeRHeMuL/Helpers/workflows/Test/badge.svg&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![Latest Stable Version]&#40;https://poser.pugx.org/andrew-gos/helpers/version.svg&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![Latest Unstable Version]&#40;https://poser.pugx.org/andrew-gos/helpers/v/unstable.svg&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![PHP Version Require]&#40;https://poser.pugx.org/andrew-gos/helpers/require/php&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![License]&#40;https://poser.pugx.org/andrew-gos/helpers/license.svg&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![Downloads]&#40;https://poser.pugx.org/andrew-gos/helpers/d/total.svg&#41;]&#40;https://packagist.org/packages/andrew-gos/helpers&#41;)
-
-[//]: # ([![codecov]&#40;https://codecov.io/gh/CiBeRHeMuL/Helpers/branch/main/graph/badge.svg&#41;]&#40;https://codecov.io/gh/CiBeRHeMuL/Helpers&#41;)
+[![CI](https://github.com/CiBeRHeMuL/Helpers/actions/workflows/ci.yaml/badge.svg)](https://github.com/CiBeRHeMuL/Helpers)
+[![Latest Stable Version](https://poser.pugx.org/andrew-gos/helpers/version.svg)](https://packagist.org/packages/andrew-gos/helpers)
+[![Latest Unstable Version](https://poser.pugx.org/andrew-gos/helpers/v/unstable.svg)](https://packagist.org/packages/andrew-gos/helpers)
+[![PHP Version Require](https://poser.pugx.org/andrew-gos/helpers/require/php)](https://packagist.org/packages/andrew-gos/helpers)
+[![License](https://poser.pugx.org/andrew-gos/helpers/license.svg)](https://packagist.org/packages/andrew-gos/helpers)
+[![Downloads](https://poser.pugx.org/andrew-gos/helpers/d/total.svg)](https://packagist.org/packages/andrew-gos/helpers)
+[![codecov](https://codecov.io/github/CiBeRHeMuL/Helpers/graph/badge.svg)](https://codecov.io/github/CiBeRHeMuL/Helpers)
 
 A collection of high-performance, strictly typed helper classes for arrays and strings in modern PHP applications.
 
